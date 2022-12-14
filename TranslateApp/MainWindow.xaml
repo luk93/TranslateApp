@@ -78,7 +78,7 @@
                 <TextBlock Grid.Column="3" Grid.Row="3" Text="Source" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
                 <TextBlock Grid.Column="4" Grid.Row="3" Text="Target" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
                 <TextBox x:Name="TB_colId" Grid.Column="2" Grid.Row="4" Text="3" Width="100" Height="20" TextAlignment="Center" TextChanged="TB_colId_textChanged"/>
-                <TextBox x:Name="TB_colSrc" Grid.Column="3" Grid.Row="4" Text="6" Width="100" Height="20" TextAlignment="Center" TextChanged="TB_colSrc_textChanged"/>
+                <TextBox x:Name="TB_colSrc" Grid.Column="3" Grid.Row="4" Text="5" Width="100" Height="20" TextAlignment="Center" TextChanged="TB_colSrc_textChanged"/>
                 <TextBox x:Name="TB_colTrg" Grid.Column="4" Grid.Row="4" Text="7" Width="100" Height="20" TextAlignment="Center" TextChanged="TB_colTrg_textChanged"/>
             
                 <!-- -->

@@ -13,12 +13,12 @@ namespace TranslateApp.Data
         public string TargetText { get; set; }
         public int Row { get; set; }
 
-        public TextToTranslate(string id, string srcText)
+        public TextToTranslate(string id, string srcText, int row)
         {
             Id = id;
             SourceText = srcText;
+            Row = row;
             TargetText = string.Empty;
-            Row = 0;
         }
     }
 }

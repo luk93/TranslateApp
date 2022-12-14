@@ -71,8 +71,8 @@ namespace TranslateApp
             }
             catch (Exception ex)
             {
-                TB_Status.AddLine($"\n {ex.Message}");
-                TB_Status.AddLine(ex.StackTrace != null ? $"\n {ex.StackTrace}" : "");
+                TB_Status.AddLine($"\n{ex.Message}");
+                TB_Status.AddLine(ex.StackTrace != null ? $"\n{ex.StackTrace}" : "");
             }
         }
         private async void B_SelectTextsXLSX_ClickAsync(object sender, RoutedEventArgs e)
@@ -82,14 +82,16 @@ namespace TranslateApp
             if (textFile_g != null)
             {
                 L_TextfilePath.Text = textFile_g.FullName;
-                TB_Status.AddLine($"\n Selected: {textFile_g.FullName}");
+                TB_Status.AddLine($"\nSelected: {textFile_g.FullName}");
                 try
                 {
                     if (textDataTable_g.Rows.Count >= 0)
                         textDataTable_g.Clear();
                     textDataTable_g = await ExcelOperations.FromExcelFileToDataTable(textFile_g);
-                    TB_Status.AddLine($"\n Acquired {textDataTable_g.Rows.Count} texts");
-                    TB_Status.AddLine($"\n {textDataTable_g.CheckHeaders(wsData_g)}");
+                    TB_Status.AddLine($"\nAcquired {textDataTable_g.Rows.Count} texts");
+                    textDataTable_g.CheckHeaders(wsData_g);
+                    UpdateUIDataWithWSData(wsData_g);
+                    UpdateUIDataWithWSData(wsData_g);
                     CheckWSData();
                 }
                 catch (Exception ex)
@@ -106,21 +108,23 @@ namespace TranslateApp
             string nameExtension = "_translated";
             if (textFile_g == null)
             {
-                TB_Status.AddLine("\n Failed to duplicate (.xlsx) file! Selected file is null!");
+                TB_Status.AddLine("\nFailed to duplicate (.xlsx) file! Selected file is null!");
                 return;
             }
             var excelPackage = ExcelOperations.DuplicateExcelFile(textFile_g, nameExtension);
             if (excelPackage == null)
             {
-                TB_Status.AddLine("\n Failed to duplicate (.xlsx) file! Selected file not correct!");
+                TB_Status.AddLine("\nFailed to duplicate (.xlsx) file! Selected file not correct!");
                 return;
             }
-            var ws = excelPackage.Workbook.Worksheets[0];
-            var range = ws.Cells["A1"].LoadFromDataTable(textDataTable_g, true);
-            range.AutoFitColumns();
-            var newName = excelPackage.File.FullName;
-            await ExcelOperations.SaveExcelFile(excelPackage);
-            TB_Status.AddLine($"\n Created file : {newName}");
+            textToTranslateList = textDataTable_g.GetTextList(wsData_g);
+            TB_Status.AddLine($"\nAcquired {textToTranslateList.Count()} non empty texts");
+            //var ws = excelPackage.Workbook.Worksheets[0];
+            //var range = ws.Cells["A1"].LoadFromDataTable(textDataTable_g, true);
+            //range.AutoFitColumns();
+            //var newName = excelPackage.File.FullName;
+            //await ExcelOperations.SaveExcelFile(excelPackage);
+            //TB_Status.AddLine($"\nCreated file : {newName}");
             EnableButtonAndChangeCursor(sender);
         }
         #endregion
@@ -162,26 +166,51 @@ namespace TranslateApp
                 {
                     return xmlFile;
                 }
-                TB_Status.AddLine("\n File not exist or in use!");
+                TB_Status.AddLine("\nFile not exist or in use!");
                 return null;
             }
             else
             {
-                TB_Status.AddLine("\n File not selected!");
+                TB_Status.AddLine("\nFile not selected!");
                 return null;
             }
         }
-        public void UpdateWSDataFromUI(WSData wSData)
+        public void UpdateUIDataWithWSData(WSData wSData)
         {
-            wSData.IDColumn = int.Parse(TB_colId.Text);
+            if (TB_colId.Text != wSData.IDColumn.ToString())
+            {
+                TB_Status.AddLine($"\nColumn id has been updated {TB_colId.Text} -> {wSData.IDColumn}");
+                TB_colId.Text = wSData.IDColumn.ToString();
+            }
+            if (TB_colSrc.Text != wSData.SrcColumn.ToString())
+            {
+                TB_Status.AddLine($"\nColumn source has been updated {TB_colSrc.Text} -> {wSData.SrcColumn}");
+                TB_colSrc.Text = wSData.SrcColumn.ToString();
+            }
+            if (TB_colTrg.Text != wSData.TrgColumn.ToString())
+            {
+                TB_Status.AddLine($"\nColumn target has been updated {TB_colTrg.Text} -> {wSData.TrgColumn}");
+                TB_colTrg.Text = wSData.TrgColumn.ToString();
+            }
+            if (TB_srcLang.Text != wSData.SrcLangCode)
+            {
+                TB_Status.AddLine($"\nSource language has been updated {TB_srcLang.Text} -> {wSData.SrcLangCode}");
+                TB_srcLang.Text = wSData.SrcLangCode;
+            }
+            if (TB_trgLang.Text != wSData.TrgLangCode)
+            {
+                TB_Status.AddLine($"\nTarget language has been updated {TB_trgLang.Text} -> {wSData.TrgLangCode}");
+                TB_trgLang.Text = wSData.TrgLangCode;
+            }
         }
+
         #endregion
         #region UI Input Validation
         private void TB_colId_textChanged(object sender, TextChangedEventArgs e)
         {
             int colId = 0;
             TextBox textBox = (TextBox)sender;
-            if(int.TryParse(textBox.Text, out colId))
+            if (int.TryParse(textBox.Text, out colId))
             {
                 wsData_g.IDColumn = colId;
                 textBox.Background = Brushes.LightGreen;
@@ -253,7 +282,7 @@ namespace TranslateApp
             string inputValue = textBox.Text;
             if (langCodeList_g.Contains(inputValue))
             {
-                wsData_g.SrcLangCode = inputValue;
+                wsData_g.TrgLangCode = inputValue;
                 textBox.Background = Brushes.LightGreen;
                 wsData_g.valOk[4] = true;
             }

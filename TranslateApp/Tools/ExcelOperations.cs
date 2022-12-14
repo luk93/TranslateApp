@@ -50,7 +50,7 @@ namespace TranslateApp.Tools
         public static ExcelPackage? DuplicateExcelFile(FileInfo file, string nameExtenstion)
         {
             string newPath = file.FullName.Replace(".", $"{nameExtenstion}.");
-            File.Copy(file.FullName, newPath);
+            File.Copy(file.FullName, newPath, true);
             FileInfo newFile = new FileInfo(newPath);
             return new ExcelPackage(newFile);
         }
