@@ -37,6 +37,7 @@ namespace TranslateApp
         public static DataTable textDataTable_g = null!;
         public static WSData wsData_g = null!;
         public static List<string> langCodeList_g = null!;
+        public static Stopwatch stopWatch_g = null!;
         public MainWindow()
         {
             wsData_g = new();
@@ -44,6 +45,7 @@ namespace TranslateApp
             InitializeComponent();
             textToTranslateList = new();
             textDataTable_g = new();
+            stopWatch_g = new();
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         }
         #region UI Handlers
@@ -119,12 +121,21 @@ namespace TranslateApp
             }
             textToTranslateList = textDataTable_g.GetTextList(wsData_g);
             TB_Status.AddLine($"\nAcquired {textToTranslateList.Count()} non empty texts");
-            //var ws = excelPackage.Workbook.Worksheets[0];
-            //var range = ws.Cells["A1"].LoadFromDataTable(textDataTable_g, true);
-            //range.AutoFitColumns();
-            //var newName = excelPackage.File.FullName;
-            //await ExcelOperations.SaveExcelFile(excelPackage);
-            //TB_Status.AddLine($"\nCreated file : {newName}");
+            var shortVerTextList = textToTranslateList.GetListWithoutDuplicatedSource();
+            TB_Status.AddLine($"\nAcquired {shortVerTextList.Count()} non empty UNIQUE texts");
+            stopWatch_g.Reset();
+            stopWatch_g.Start();
+            await shortVerTextList.TranslateAsync(wsData_g.SrcLangCode,wsData_g.TrgLangCode);
+            stopWatch_g.Stop();
+            TB_Status.AddLine($"\nTranslated in {stopWatch_g.Elapsed}.");
+            textToTranslateList.FillListWithTranslationsList(shortVerTextList);
+            textDataTable_g.UpdateWithTextList(textToTranslateList, wsData_g);
+            var ws = excelPackage.Workbook.Worksheets[0];
+            var range = ws.Cells["A1"].LoadFromDataTable(textDataTable_g, true);
+            range.AutoFitColumns();
+            var newName = excelPackage.File.FullName;
+            await ExcelOperations.SaveExcelFile(excelPackage);
+            TB_Status.AddLine($"\nCreated file : {newName}");
             EnableButtonAndChangeCursor(sender);
         }
         #endregion

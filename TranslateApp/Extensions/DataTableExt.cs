@@ -7,11 +7,11 @@ using System.Text;
 using System.Threading.Tasks;
 using TranslateApp.Data;
 
-namespace TranslateApp.Tools
+namespace TranslateApp.Extensions
 {
-    public static class DataTableOperations
+    public static class DataTableExt
     {
-        public static List<TextToTranslate> GetTextList(this DataTable dataTable, WSData wSData) 
+        public static List<TextToTranslate> GetTextList(this DataTable dataTable, WSData wSData)
         {
             List<TextToTranslate> listResult = new();
             //Get only non empty texts
@@ -22,7 +22,7 @@ namespace TranslateApp.Tools
                     string? srcText = dr[wSData.SrcColumn].ToString();
                     string? id = dr[wSData.IDColumn].ToString();
                     int index = dataTable.Rows.IndexOf(dr);
-                    if(srcText != null && id != null)
+                    if (srcText != null && id != null)
                     {
                         TextToTranslate obj = new(id, srcText, index);
                         listResult.Add(obj);
@@ -31,13 +31,24 @@ namespace TranslateApp.Tools
             }
             return listResult;
         }
+        public static void UpdateWithTextList(this DataTable dataTable, List<TextToTranslate> textList, WSData wSData)
+        {
+            foreach (DataRow dr in dataTable.Rows)
+            {
+                if (!string.IsNullOrEmpty(dr[wSData.SrcColumn].ToString()))
+                {
+                    dr[wSData.TrgColumn] = textList.Find(x => x.Row == dataTable.Rows.IndexOf(dr))?.TargetText ?? string.Empty;
+                }
+            }
+        }
+
         public static void CheckHeaders(this DataTable dataTable, WSData wSData)
         {
             foreach (DataColumn column in dataTable.Columns)
             {
-                if(column.ColumnName.Contains("ID")) wSData.IDColumn = column.Ordinal;
-                if(column.ColumnName.Contains(wSData.SrcLangCode)) wSData.SrcColumn = column.Ordinal;
-                if(column.ColumnName.Contains(wSData.TrgLangCode)) wSData.TrgColumn = column.Ordinal;
+                if (column.ColumnName.Contains("ID")) wSData.IDColumn = column.Ordinal;
+                if (column.ColumnName.Contains(wSData.SrcLangCode)) wSData.SrcColumn = column.Ordinal;
+                if (column.ColumnName.Contains(wSData.TrgLangCode)) wSData.TrgColumn = column.Ordinal;
             }
         }
     }
