@@ -18,16 +18,17 @@ namespace TranslateApp.Extensions
         {
             return textList.GroupBy(x => x.SourceText).Select(y => y.First()).ToList();
         }
-        private static void Translate(this List<TextToTranslate> textList, string srcLangCode, string trgLangCode)
+        private static void Translate(this List<TextToTranslate> textList, string srcLangCode, string trgLangCode, IProgress<int> progress)
         {
-            foreach(var textToTranslate in textList)
+            foreach (var textToTranslate in textList)
             {
                 textToTranslate.TargetText = Translators.TranslateTextWithoutApi(textToTranslate.SourceText, srcLangCode, trgLangCode);
+                _ = Task.Run(() => progress.Report(textList.IndexOf(textToTranslate)));
             }
         }
-        public static Task TranslateAsync(this List<TextToTranslate> textList, string srcLangCode, string trgLangCode)
+        public static Task TranslateAsync(this List<TextToTranslate> textList, string srcLangCode, string trgLangCode, IProgress<int> progress)
         {
-            return Task.Run(() => Translate(textList, srcLangCode, trgLangCode));
+            return Task.Run(() => Translate(textList, srcLangCode, trgLangCode,progress));
         }
         public static void FillListWithTranslationsList(this List<TextToTranslate> wholeList, List<TextToTranslate> shortList)
         {

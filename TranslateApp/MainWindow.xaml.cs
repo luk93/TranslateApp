@@ -38,6 +38,8 @@ namespace TranslateApp
         public static WSData wsData_g = null!;
         public static List<string> langCodeList_g = null!;
         public static Stopwatch stopWatch_g = null!;
+        public static Progress<int> progress = null!;
+
         public MainWindow()
         {
             wsData_g = new();
@@ -46,7 +48,9 @@ namespace TranslateApp
             textToTranslateList = new();
             textDataTable_g = new();
             stopWatch_g = new();
+            progress = new Progress<int>(val => PB_Status.Value = val);
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            TB_StatusBar.Text = "Select File (.xlsx) to translate";
         }
         #region UI Handlers
         private void B_SelectExpFolder_Click(object sender, RoutedEventArgs e)
@@ -89,8 +93,10 @@ namespace TranslateApp
                 {
                     if (textDataTable_g.Rows.Count >= 0)
                         textDataTable_g.Clear();
+                    TB_StatusBar.Text = "Loading DataTable from Excelfile...";
                     textDataTable_g = await ExcelOperations.FromExcelFileToDataTable(textFile_g);
                     TB_Status.AddLine($"\nAcquired {textDataTable_g.Rows.Count} texts");
+                    TB_StatusBar.Text = "Checking headers...";
                     textDataTable_g.CheckHeaders(wsData_g);
                     UpdateUIDataWithWSData(wsData_g);
                     UpdateUIDataWithWSData(wsData_g);
@@ -119,22 +125,31 @@ namespace TranslateApp
                 TB_Status.AddLine("\nFailed to duplicate (.xlsx) file! Selected file not correct!");
                 return;
             }
+            TB_StatusBar.Text = "Creating Textlist...";
             textToTranslateList = textDataTable_g.GetTextList(wsData_g);
             TB_Status.AddLine($"\nAcquired {textToTranslateList.Count()} non empty texts");
+            TB_StatusBar.Text = "Removing duplicates in Textlist...";
             var shortVerTextList = textToTranslateList.GetListWithoutDuplicatedSource();
             TB_Status.AddLine($"\nAcquired {shortVerTextList.Count()} non empty UNIQUE texts");
             stopWatch_g.Reset();
             stopWatch_g.Start();
-            await shortVerTextList.TranslateAsync(wsData_g.SrcLangCode,wsData_g.TrgLangCode);
+            TB_StatusBar.Text = "Translating Textlist...";
+            PB_Status.Maximum = shortVerTextList.Count;
+            await shortVerTextList.TranslateAsync(wsData_g.SrcLangCode,wsData_g.TrgLangCode, progress);
             stopWatch_g.Stop();
             TB_Status.AddLine($"\nTranslated in {stopWatch_g.Elapsed}.");
+            TB_StatusBar.Text = "Filling Textlist with translations...";
             textToTranslateList.FillListWithTranslationsList(shortVerTextList);
+            TB_StatusBar.Text = "Updating DataTable with Textlist...";
             textDataTable_g.UpdateWithTextList(textToTranslateList, wsData_g);
             var ws = excelPackage.Workbook.Worksheets[0];
+            TB_StatusBar.Text = "Loading DataTable to Excelfile...";
             var range = ws.Cells["A1"].LoadFromDataTable(textDataTable_g, true);
             range.AutoFitColumns();
             var newName = excelPackage.File.FullName;
+            TB_StatusBar.Text = "Saving Excelfile...";
             await ExcelOperations.SaveExcelFile(excelPackage);
+            TB_StatusBar.Text = "Translations made!";
             TB_Status.AddLine($"\nCreated file : {newName}");
             EnableButtonAndChangeCursor(sender);
         }
@@ -154,7 +169,17 @@ namespace TranslateApp
         }
         public void CheckWSData()
         {
-            if (textDataTable_g.Rows.Count >= 0 && wsData_g.CheckData()) B_Translate.IsEnabled = true;
+            if (textDataTable_g.Rows.Count >= 0 && wsData_g.CheckData())
+            {
+                B_Translate.IsEnabled = true;
+                TB_StatusBar.Text = "Configuration OK! Click MakeTranslations Button";
+
+            }
+            else
+            {
+                B_Translate.IsEnabled = false;
+                TB_StatusBar.Text = "Configuration not OK";
+            }
         }
         public FileInfo? SelectXlsxFileAndTryToUse(string title)
         {
