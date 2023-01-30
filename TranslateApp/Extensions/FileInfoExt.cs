@@ -10,11 +10,11 @@ namespace TranslateApp.Extensions
 {
     public static class FileInfoExt
     {
-        public static bool IsFileLocked(this FileInfo fileInfo, string filePath)
+        public static bool IsFileLocked(this FileInfo fileInfo)
         {
             try
             {
-                var stream = File.OpenRead(filePath);
+                var stream = File.OpenRead(fileInfo.FullName);
                 return false;
             }
             catch (IOException)

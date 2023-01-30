@@ -7,6 +7,7 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TranslateApp.Extensions;
 
 namespace TranslateApp.Tools
 {
@@ -47,9 +48,9 @@ namespace TranslateApp.Tools
             }
             return new ExcelPackage(file);
         }
-        public static ExcelPackage? DuplicateExcelFile(FileInfo file, string nameExtenstion)
+        public static ExcelPackage? DuplicateExcelFile(FileInfo file, string exportFolderPath, string nameExtenstion)
         {
-            string newPath = file.FullName.Replace(".", $"{nameExtenstion}.");
+            string newPath = Path.Combine(exportFolderPath, file.Name.Replace(".", $"{nameExtenstion}."));
             File.Copy(file.FullName, newPath, true);
             FileInfo newFile = new FileInfo(newPath);
             return new ExcelPackage(newFile);

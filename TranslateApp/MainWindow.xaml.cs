@@ -23,6 +23,7 @@ using TranslateApp.Extensions;
 using TranslateApp.Data;
 using System.Drawing;
 using Brushes = System.Windows.Media.Brushes;
+using Path = System.IO.Path;
 
 namespace TranslateApp
 {
@@ -77,7 +78,7 @@ namespace TranslateApp
             }
             catch (Exception ex)
             {
-                TB_Status.AddLine($"\n{ex.Message}");
+                TB_Status.AddLine($"{ex.Message}");
                 TB_Status.AddLine(ex.StackTrace != null ? $"\n{ex.StackTrace}" : "");
             }
         }
@@ -88,24 +89,24 @@ namespace TranslateApp
             if (textFile_g != null)
             {
                 L_TextfilePath.Text = textFile_g.FullName;
-                TB_Status.AddLine($"\nSelected: {textFile_g.FullName}");
+                TB_Status.AddLine($"Selected: {textFile_g.FullName}");
+                CheckPathAndFillTextBlock(expFolderPath, textFile_g.FullName, TB_ExpFolderPath);
                 try
                 {
                     if (textDataTable_g.Rows.Count >= 0)
                         textDataTable_g.Clear();
                     TB_StatusBar.Text = "Loading DataTable from Excelfile...";
                     textDataTable_g = await ExcelOperations.FromExcelFileToDataTable(textFile_g);
-                    TB_Status.AddLine($"\nAcquired {textDataTable_g.Rows.Count} texts");
+                    TB_Status.AddLine($"Acquired {textDataTable_g.Rows.Count} texts");
                     TB_StatusBar.Text = "Checking headers...";
                     textDataTable_g.CheckHeaders(wsData_g);
-                    UpdateUIDataWithWSData(wsData_g);
                     UpdateUIDataWithWSData(wsData_g);
                     CheckWSData();
                 }
                 catch (Exception ex)
                 {
-                    TB_Status.AddLine($"\n{ex.Message}");
-                    TB_Status.AddLine($"\n{ex.StackTrace}");
+                    TB_Status.AddLine($"{ex.Message}");
+                    TB_Status.AddLine($"{ex.StackTrace}");
                 }
             }
             EnableButtonAndChangeCursor(sender);
@@ -116,28 +117,33 @@ namespace TranslateApp
             string nameExtension = "_translated";
             if (textFile_g == null)
             {
-                TB_Status.AddLine("\nFailed to duplicate (.xlsx) file! Selected file is null!");
+                TB_Status.AddLine("Failed to duplicate (.xlsx) file! Selected file is null!");
                 return;
             }
-            var excelPackage = ExcelOperations.DuplicateExcelFile(textFile_g, nameExtension);
+            if(textFile_g.IsFileLocked())
+            {
+                TB_Status.AddLine("Failed to duplicate (.xlsx) file! File not exist or is being used!");
+                return;
+            }
+            var excelPackage = ExcelOperations.DuplicateExcelFile(textFile_g, expFolderPath, nameExtension);
             if (excelPackage == null)
             {
-                TB_Status.AddLine("\nFailed to duplicate (.xlsx) file! Selected file not correct!");
+                TB_Status.AddLine("Failed to duplicate (.xlsx) file! Selected file not correct!");
                 return;
             }
             TB_StatusBar.Text = "Creating Textlist...";
             textToTranslateList = textDataTable_g.GetTextList(wsData_g);
-            TB_Status.AddLine($"\nAcquired {textToTranslateList.Count()} non empty texts");
+            TB_Status.AddLine($"Acquired {textToTranslateList.Count()} non empty texts");
             TB_StatusBar.Text = "Removing duplicates in Textlist...";
             var shortVerTextList = textToTranslateList.GetListWithoutDuplicatedSource();
-            TB_Status.AddLine($"\nAcquired {shortVerTextList.Count()} non empty UNIQUE texts");
+            TB_Status.AddLine($"Acquired {shortVerTextList.Count()} non empty UNIQUE texts");
             stopWatch_g.Reset();
             stopWatch_g.Start();
             TB_StatusBar.Text = "Translating Textlist...";
             PB_Status.Maximum = shortVerTextList.Count;
             await shortVerTextList.TranslateAsync(wsData_g.SrcLangCode,wsData_g.TrgLangCode, progress);
             stopWatch_g.Stop();
-            TB_Status.AddLine($"\nTranslated in {stopWatch_g.Elapsed}.");
+            TB_Status.AddLine($"Translated in {stopWatch_g.Elapsed}.");
             TB_StatusBar.Text = "Filling Textlist with translations...";
             textToTranslateList.FillListWithTranslationsList(shortVerTextList);
             TB_StatusBar.Text = "Updating DataTable with Textlist...";
@@ -150,7 +156,7 @@ namespace TranslateApp
             TB_StatusBar.Text = "Saving Excelfile...";
             await ExcelOperations.SaveExcelFile(excelPackage);
             TB_StatusBar.Text = "Translations made!";
-            TB_Status.AddLine($"\nCreated file : {newName}");
+            TB_Status.AddLine($"Created file : {newName}");
             EnableButtonAndChangeCursor(sender);
         }
         #endregion
@@ -167,7 +173,16 @@ namespace TranslateApp
             Button button = (Button)sender;
             button.IsEnabled = true;
         }
-        public void CheckWSData()
+        private string? CheckPathAndFillTextBlock(string path, string path2, TextBlock textBlock)
+        {
+            if (path != string.Empty || path == null)
+                return path;
+            var dir = Path.GetDirectoryName(path2);
+            textBlock.Text = dir;
+            B_OpenExpFolder.IsEnabled = true;
+            return dir;
+        }
+        private void CheckWSData()
         {
             if (textDataTable_g.Rows.Count >= 0 && wsData_g.CheckData())
             {
@@ -181,7 +196,7 @@ namespace TranslateApp
                 TB_StatusBar.Text = "Configuration not OK";
             }
         }
-        public FileInfo? SelectXlsxFileAndTryToUse(string title)
+        private FileInfo? SelectXlsxFileAndTryToUse(string title)
         {
             OpenFileDialog openFileDialog1 = new()
             {
@@ -198,48 +213,47 @@ namespace TranslateApp
             if (openFileDialog1.ShowDialog() == true)
             {
                 FileInfo xmlFile = new(openFileDialog1.FileName);
-                if (xmlFile.Exists && !xmlFile.IsFileLocked(xmlFile.FullName))
+                if (xmlFile.Exists && !xmlFile.IsFileLocked())
                 {
                     return xmlFile;
                 }
-                TB_Status.AddLine("\nFile not exist or in use!");
+                TB_Status.AddLine("File not exist or in use!");
                 return null;
             }
             else
             {
-                TB_Status.AddLine("\nFile not selected!");
+                TB_Status.AddLine("File not selected!");
                 return null;
             }
         }
-        public void UpdateUIDataWithWSData(WSData wSData)
+        private void UpdateUIDataWithWSData(WSData wSData)
         {
             if (TB_colId.Text != wSData.IDColumn.ToString())
             {
-                TB_Status.AddLine($"\nColumn id has been updated {TB_colId.Text} -> {wSData.IDColumn}");
+                TB_Status.AddLine($"Column id has been updated {TB_colId.Text} -> {wSData.IDColumn}");
                 TB_colId.Text = wSData.IDColumn.ToString();
             }
             if (TB_colSrc.Text != wSData.SrcColumn.ToString())
             {
-                TB_Status.AddLine($"\nColumn source has been updated {TB_colSrc.Text} -> {wSData.SrcColumn}");
+                TB_Status.AddLine($"Column source has been updated {TB_colSrc.Text} -> {wSData.SrcColumn}");
                 TB_colSrc.Text = wSData.SrcColumn.ToString();
             }
             if (TB_colTrg.Text != wSData.TrgColumn.ToString())
             {
-                TB_Status.AddLine($"\nColumn target has been updated {TB_colTrg.Text} -> {wSData.TrgColumn}");
+                TB_Status.AddLine($"Column target has been updated {TB_colTrg.Text} -> {wSData.TrgColumn}");
                 TB_colTrg.Text = wSData.TrgColumn.ToString();
             }
             if (TB_srcLang.Text != wSData.SrcLangCode)
             {
-                TB_Status.AddLine($"\nSource language has been updated {TB_srcLang.Text} -> {wSData.SrcLangCode}");
+                TB_Status.AddLine($"Source language has been updated {TB_srcLang.Text} -> {wSData.SrcLangCode}");
                 TB_srcLang.Text = wSData.SrcLangCode;
             }
             if (TB_trgLang.Text != wSData.TrgLangCode)
             {
-                TB_Status.AddLine($"\nTarget language has been updated {TB_trgLang.Text} -> {wSData.TrgLangCode}");
+                TB_Status.AddLine($"Target language has been updated {TB_trgLang.Text} -> {wSData.TrgLangCode}");
                 TB_trgLang.Text = wSData.TrgLangCode;
             }
         }
-
         #endregion
         #region UI Input Validation
         private void TB_colId_textChanged(object sender, TextChangedEventArgs e)
@@ -329,7 +343,5 @@ namespace TranslateApp
             }
         }
         #endregion
-
-
     }
 }

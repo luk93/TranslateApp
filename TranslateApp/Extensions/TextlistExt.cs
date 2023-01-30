@@ -34,7 +34,6 @@ namespace TranslateApp.Extensions
         {
             wholeList.ForEach(x =>
             {
-
                 x.TargetText = shortList.Find(y => y.SourceText == x.SourceText)?.TargetText ?? string.Empty;
             });
         }
