@@ -1,4 +1,5 @@
 # TranslateApp
+\
 Simple WPF App that allows to translate texts (Exported textlist from TIA Portal) contained in Excel File\
 ![](TranslateApp/Screenshots/TranslateApp_ss0.png)
 \
