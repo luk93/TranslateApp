@@ -22,15 +22,13 @@ namespace TranslateApp.Tools
             var node = htmlDoc.DocumentNode.SelectSingleNode("//div");
             foreach (HtmlNode childNode in node.ChildNodes)
             {
-                if (string.Equals(childNode.Attributes["class"].Value, "result-container"))
-                {
-                    //invisible chars
-                    string correctedResult = System.Text.RegularExpressions.Regex.Replace(childNode.InnerText, @"[^\u0000-\u007F]", string.Empty);
-                    //additional chars correction
-                    correctedResult = correctedResult.Replace("&quot", "\"");
-                    result = correctedResult.Replace("&gt", ">");
-                    return result;
-                }
+                if (!string.Equals(childNode.Attributes["class"].Value, "result-container")) continue;
+                //invisible chars
+                string correctedResult = System.Text.RegularExpressions.Regex.Replace(childNode.InnerText, @"[^\u0000-\u007F]", string.Empty);
+                //additional chars correction
+                correctedResult = correctedResult.Replace("&quot", "\"");
+                result = correctedResult.Replace("&gt", ">");
+                return result;
             }
             return result;
         }

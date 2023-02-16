@@ -32,24 +32,24 @@ namespace TranslateApp
     /// </summary>
     public partial class MainWindow : Window
     {
-        public static string expFolderPath = string.Empty;
-        public static FileInfo? textFile_g = null!;
-        public static List<TextToTranslate>? textToTranslateList;
-        public static DataTable textDataTable_g = null!;
-        public static WSData wsData_g = null!;
-        public static List<string> langCodeList_g = null!;
-        public static Stopwatch stopWatch_g = null!;
-        public static Progress<int> progress = null!;
+        private static string _expFolderPath = string.Empty;
+        private static FileInfo? _textFileG;
+        private static List<TextToTranslate>? _textToTranslateList;
+        private static DataTable _textDataTableG = null!;
+        private static WSData _wsDataG = null!;
+        private static List<string> _langCodeListG = null!;
+        private static Stopwatch _stopWatchG = null!;
+        private static Progress<int> _progress = null!;
 
         public MainWindow()
         {
-            wsData_g = new();
-            langCodeList_g = LangCodes.CreateLanguageCodes();
+            _wsDataG = new();
+            _langCodeListG = LangCodes.CreateLanguageCodes();
             InitializeComponent();
-            textToTranslateList = new();
-            textDataTable_g = new();
-            stopWatch_g = new();
-            progress = new Progress<int>(val => PB_Status.Value = val);
+            _textToTranslateList = new();
+            _textDataTableG = new();
+            _stopWatchG = new();
+            _progress = new Progress<int>(val => PB_Status.Value = val);
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             TB_StatusBar.Text = "Select File (.xlsx) to translate";
         }
@@ -64,8 +64,8 @@ namespace TranslateApp
             var result = openFolderDialog.ShowDialog();
             if (result == true)
             {
-                expFolderPath = openFolderDialog.SelectedPath + @"\";
-                TB_ExpFolderPath.Text = expFolderPath;
+                _expFolderPath = openFolderDialog.SelectedPath + @"\";
+                TB_ExpFolderPath.Text = _expFolderPath;
                 B_OpenExpFolder.IsEnabled = true;
             }
             EnableButtonAndChangeCursor(sender);
@@ -74,7 +74,7 @@ namespace TranslateApp
         {
             try
             {
-                Process.Start("explorer.exe", @expFolderPath);
+                Process.Start("explorer.exe", _expFolderPath);
             }
             catch (Exception ex)
             {
@@ -85,22 +85,22 @@ namespace TranslateApp
         private async void B_SelectTextsXLSX_ClickAsync(object sender, RoutedEventArgs e)
         {
             DisableButtonAndChangeCursor(sender);
-            textFile_g = SelectXlsxFileAndTryToUse("Select Text File (.xlsx)");
-            if (textFile_g != null)
+            _textFileG = SelectXlsxFileAndTryToUse("Select Text File (.xlsx)");
+            if (_textFileG != null)
             {
-                L_TextfilePath.Text = textFile_g.FullName;
-                TB_Status.AddLine($"Selected: {textFile_g.FullName}");
-                CheckPathAndFillTextBlock(expFolderPath, textFile_g.FullName, TB_ExpFolderPath);
+                L_TextfilePath.Text = _textFileG.FullName;
+                TB_Status.AddLine($"Selected: {_textFileG.FullName}");
+                CheckPathAndFillTextBlock(_expFolderPath, _textFileG.FullName, TB_ExpFolderPath);
                 try
                 {
-                    if (textDataTable_g.Rows.Count >= 0)
-                        textDataTable_g.Clear();
+                    if (_textDataTableG.Rows.Count >= 0)
+                        _textDataTableG.Clear();
                     TB_StatusBar.Text = "Loading DataTable from Excelfile...";
-                    textDataTable_g = await ExcelOperations.FromExcelFileToDataTable(textFile_g);
-                    TB_Status.AddLine($"Acquired {textDataTable_g.Rows.Count} texts");
+                    _textDataTableG = await ExcelOperations.FromExcelFileToDataTable(_textFileG);
+                    TB_Status.AddLine($"Acquired {_textDataTableG.Rows.Count} texts");
                     TB_StatusBar.Text = "Checking headers...";
-                    textDataTable_g.CheckHeaders(wsData_g);
-                    UpdateUIDataWithWSData(wsData_g);
+                    _textDataTableG.CheckHeaders(_wsDataG);
+                    UpdateUIDataWithWSData(_wsDataG);
                     CheckWSData();
                 }
                 catch (Exception ex)
@@ -115,42 +115,42 @@ namespace TranslateApp
         {
             DisableButtonAndChangeCursor(sender);
             string nameExtension = "_translated";
-            if (textFile_g == null)
+            if (_textFileG == null)
             {
                 TB_Status.AddLine("Failed to duplicate (.xlsx) file! Selected file is null!");
                 return;
             }
-            if(textFile_g.IsFileLocked())
+            if(_textFileG.IsFileLocked())
             {
                 TB_Status.AddLine("Failed to duplicate (.xlsx) file! File not exist or is being used!");
                 return;
             }
-            var excelPackage = ExcelOperations.DuplicateExcelFile(textFile_g, expFolderPath, nameExtension);
+            var excelPackage = ExcelOperations.DuplicateExcelFile(_textFileG, _expFolderPath, nameExtension);
             if (excelPackage == null)
             {
                 TB_Status.AddLine("Failed to duplicate (.xlsx) file! Selected file not correct!");
                 return;
             }
             TB_StatusBar.Text = "Creating Textlist...";
-            textToTranslateList = textDataTable_g.GetTextList(wsData_g);
-            TB_Status.AddLine($"Acquired {textToTranslateList.Count()} non empty texts");
+            _textToTranslateList = _textDataTableG.GetTextList(_wsDataG);
+            TB_Status.AddLine($"Acquired {_textToTranslateList.Count} non empty texts");
             TB_StatusBar.Text = "Removing duplicates in Textlist...";
-            var shortVerTextList = textToTranslateList.GetListWithoutDuplicatedSource();
-            TB_Status.AddLine($"Acquired {shortVerTextList.Count()} non empty UNIQUE texts");
-            stopWatch_g.Reset();
-            stopWatch_g.Start();
+            var shortVerTextList = _textToTranslateList.GetListWithoutDuplicatedSource();
+            TB_Status.AddLine($"Acquired {shortVerTextList.Count} non empty UNIQUE texts");
+            _stopWatchG.Reset();
+            _stopWatchG.Start();
             TB_StatusBar.Text = "Translating Textlist...";
             PB_Status.Maximum = shortVerTextList.Count;
-            await shortVerTextList.TranslateAsync(wsData_g.SrcLangCode,wsData_g.TrgLangCode, progress);
-            stopWatch_g.Stop();
-            TB_Status.AddLine($"Translated in {stopWatch_g.Elapsed}.");
+            await shortVerTextList.TranslateAsync(_wsDataG.SrcLangCode,_wsDataG.TrgLangCode, _progress);
+            _stopWatchG.Stop();
+            TB_Status.AddLine($"Translated in {_stopWatchG.Elapsed}.");
             TB_StatusBar.Text = "Filling Textlist with translations...";
-            textToTranslateList.FillListWithTranslationsList(shortVerTextList);
+            _textToTranslateList.FillListWithTranslationsList(shortVerTextList);
             TB_StatusBar.Text = "Updating DataTable with Textlist...";
-            textDataTable_g.UpdateWithTextList(textToTranslateList, wsData_g);
+            _textDataTableG.UpdateWithTextList(_textToTranslateList, _wsDataG);
             var ws = excelPackage.Workbook.Worksheets[0];
             TB_StatusBar.Text = "Loading DataTable to Excelfile...";
-            var range = ws.Cells["A1"].LoadFromDataTable(textDataTable_g, true);
+            var range = ws.Cells["A1"].LoadFromDataTable(_textDataTableG, true);
             range.AutoFitColumns();
             var newName = excelPackage.File.FullName;
             TB_StatusBar.Text = "Saving Excelfile...";
@@ -184,7 +184,7 @@ namespace TranslateApp
         }
         private void CheckWSData()
         {
-            if (textDataTable_g.Rows.Count >= 0 && wsData_g.CheckData())
+            if (_textDataTableG.Rows.Count >= 0 && _wsDataG.CheckData())
             {
                 B_Translate.IsEnabled = true;
                 TB_StatusBar.Text = "Configuration OK! Click MakeTranslations Button";
@@ -228,10 +228,10 @@ namespace TranslateApp
         }
         private void UpdateUIDataWithWSData(WSData wSData)
         {
-            if (TB_colId.Text != wSData.IDColumn.ToString())
+            if (TB_colId.Text != wSData.IdColumn.ToString())
             {
-                TB_Status.AddLine($"Column id has been updated {TB_colId.Text} -> {wSData.IDColumn}");
-                TB_colId.Text = wSData.IDColumn.ToString();
+                TB_Status.AddLine($"Column id has been updated {TB_colId.Text} -> {wSData.IdColumn}");
+                TB_colId.Text = wSData.IdColumn.ToString();
             }
             if (TB_colSrc.Text != wSData.SrcColumn.ToString())
             {
@@ -258,34 +258,32 @@ namespace TranslateApp
         #region UI Input Validation
         private void TB_colId_textChanged(object sender, TextChangedEventArgs e)
         {
-            int colId = 0;
             TextBox textBox = (TextBox)sender;
-            if (int.TryParse(textBox.Text, out colId))
+            if (int.TryParse(textBox.Text, out var colId))
             {
-                wsData_g.IDColumn = colId;
+                _wsDataG.IdColumn = colId;
                 textBox.Background = Brushes.LightGreen;
-                wsData_g.valOk[0] = true;
+                _wsDataG.ValOk[0] = true;
             }
             else
             {
                 textBox.Background = Brushes.IndianRed;
-                wsData_g.valOk[0] = false;
+                _wsDataG.ValOk[0] = false;
             }
         }
         private void TB_colSrc_textChanged(object sender, TextChangedEventArgs e)
         {
-            int colSrc = 0;
             TextBox textBox = (TextBox)sender;
-            if (int.TryParse(textBox.Text, out colSrc))
+            if (int.TryParse(textBox.Text, out var colSrc))
             {
-                wsData_g.SrcColumn = colSrc;
+                _wsDataG.SrcColumn = colSrc;
                 textBox.Background = Brushes.LightGreen;
-                wsData_g.valOk[1] = true;
+                _wsDataG.ValOk[1] = true;
             }
             else
             {
                 textBox.Background = Brushes.IndianRed;
-                wsData_g.valOk[1] = false;
+                _wsDataG.ValOk[1] = false;
             }
         }
         private void TB_srcLang_textChanged(object sender, TextChangedEventArgs e)
@@ -294,52 +292,51 @@ namespace TranslateApp
             string inputValue = textBox.Text;
             if (inputValue == "auto")
             {
-                wsData_g.SrcLangCode = inputValue;
+                _wsDataG.SrcLangCode = inputValue;
                 textBox.Background = Brushes.LightGreen;
-                wsData_g.valOk[2] = true;
+                _wsDataG.ValOk[2] = true;
             }
-            else if (langCodeList_g.Contains(inputValue))
+            else if (_langCodeListG.Contains(inputValue))
             {
-                wsData_g.SrcLangCode = inputValue;
+                _wsDataG.SrcLangCode = inputValue;
                 textBox.Background = Brushes.LightGreen;
-                wsData_g.valOk[2] = true;
+                _wsDataG.ValOk[2] = true;
             }
             else
             {
                 textBox.Background = Brushes.IndianRed;
-                wsData_g.valOk[2] = false;
+                _wsDataG.ValOk[2] = false;
             }
         }
         private void TB_colTrg_textChanged(object sender, TextChangedEventArgs e)
         {
-            int colTrg = 0;
             TextBox textBox = (TextBox)sender;
-            if (int.TryParse(textBox.Text, out colTrg))
+            if (int.TryParse(textBox.Text, out var colTrg))
             {
-                wsData_g.TrgColumn = colTrg;
+                _wsDataG.TrgColumn = colTrg;
                 textBox.Background = Brushes.LightGreen;
-                wsData_g.valOk[3] = true;
+                _wsDataG.ValOk[3] = true;
             }
             else
             {
                 textBox.Background = Brushes.IndianRed;
-                wsData_g.valOk[3] = false;
+                _wsDataG.ValOk[3] = false;
             }
         }
         private void TB_trgLang_textChanged(object sender, TextChangedEventArgs e)
         {
             TextBox textBox = (TextBox)sender;
             string inputValue = textBox.Text;
-            if (langCodeList_g.Contains(inputValue))
+            if (_langCodeListG.Contains(inputValue))
             {
-                wsData_g.TrgLangCode = inputValue;
+                _wsDataG.TrgLangCode = inputValue;
                 textBox.Background = Brushes.LightGreen;
-                wsData_g.valOk[4] = true;
+                _wsDataG.ValOk[4] = true;
             }
             else
             {
                 textBox.Background = Brushes.IndianRed;
-                wsData_g.valOk[4] = false;
+                _wsDataG.ValOk[4] = false;
             }
         }
         #endregion

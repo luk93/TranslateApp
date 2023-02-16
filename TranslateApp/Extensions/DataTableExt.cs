@@ -17,17 +17,13 @@ namespace TranslateApp.Extensions
             //Get only non empty texts
             foreach (DataRow dr in dataTable.Rows)
             {
-                if (!string.IsNullOrEmpty(dr[wSData.SrcColumn].ToString()))
-                {
-                    string? srcText = dr[wSData.SrcColumn].ToString();
-                    string? id = dr[wSData.IDColumn].ToString();
-                    int index = dataTable.Rows.IndexOf(dr);
-                    if (srcText != null && id != null)
-                    {
-                        TextToTranslate obj = new(id, srcText, index);
-                        listResult.Add(obj);
-                    }
-                }
+                if (string.IsNullOrEmpty(dr[wSData.SrcColumn].ToString())) continue;
+                string? srcText = dr[wSData.SrcColumn].ToString();
+                string? id = dr[wSData.IdColumn].ToString();
+                int index = dataTable.Rows.IndexOf(dr);
+                if (srcText == null || id == null) continue;
+                TextToTranslate obj = new(id, srcText, index);
+                listResult.Add(obj);
             }
             return listResult;
         }
@@ -46,7 +42,7 @@ namespace TranslateApp.Extensions
         {
             foreach (DataColumn column in dataTable.Columns)
             {
-                if (column.ColumnName.Contains("ID")) wSData.IDColumn = column.Ordinal;
+                if (column.ColumnName.Contains("ID")) wSData.IdColumn = column.Ordinal;
                 if (column.ColumnName.Contains(wSData.SrcLangCode)) wSData.SrcColumn = column.Ordinal;
                 if (column.ColumnName.Contains(wSData.TrgLangCode)) wSData.TrgColumn = column.Ordinal;
             }

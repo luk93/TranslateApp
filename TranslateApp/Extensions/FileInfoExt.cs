@@ -14,7 +14,7 @@ namespace TranslateApp.Extensions
         {
             try
             {
-                var stream = File.OpenRead(fileInfo.FullName);
+                File.OpenRead(fileInfo.FullName);
                 return false;
             }
             catch (IOException)
