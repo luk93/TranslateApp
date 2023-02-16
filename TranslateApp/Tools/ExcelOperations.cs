@@ -51,9 +51,16 @@ namespace TranslateApp.Tools
         public static ExcelPackage? DuplicateExcelFile(FileInfo file, string exportFolderPath, string nameExtenstion)
         {
             string newPath = Path.Combine(exportFolderPath, file.Name.Replace(".", $"{nameExtenstion}."));
-            File.Copy(file.FullName, newPath, true);
-            FileInfo newFile = new FileInfo(newPath);
-            return new ExcelPackage(newFile);
+            try
+            {
+                File.Copy(file.FullName, newPath, true);
+                FileInfo newFile = new(newPath);
+                return new ExcelPackage(newFile);
+            }
+            catch
+            {
+                return null;
+            }
         }
         public static async Task SaveExcelFile(ExcelPackage excelPackage)
         {

@@ -118,17 +118,20 @@ namespace TranslateApp
             if (_textFileG == null)
             {
                 TB_Status.AddLine("Failed to duplicate (.xlsx) file! Selected file is null!");
+                EnableButtonAndChangeCursor(sender);
                 return;
             }
             if(_textFileG.IsFileLocked())
             {
                 TB_Status.AddLine("Failed to duplicate (.xlsx) file! File not exist or is being used!");
+                EnableButtonAndChangeCursor(sender);
                 return;
             }
             var excelPackage = ExcelOperations.DuplicateExcelFile(_textFileG, _expFolderPath, nameExtension);
             if (excelPackage == null)
             {
                 TB_Status.AddLine("Failed to duplicate (.xlsx) file! Selected file not correct!");
+                EnableButtonAndChangeCursor(sender);
                 return;
             }
             TB_StatusBar.Text = "Creating Textlist...";
