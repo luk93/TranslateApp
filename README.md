@@ -2,6 +2,8 @@
 Simple WPF App that allows to translate texts (Exported textlist from TIA Portal) contained in Excel File\
 ![](TranslateApp/Screenshots/TranslateApp_ss0.png)
 \
+Features: \
+![](TranslateApp/Screenshots/TranslateApp_ss1.png)
 \
 (1) - Select export path, open folder\
 (2) - Select excel file with texts to translate\
@@ -10,5 +12,5 @@ Simple WPF App that allows to translate texts (Exported textlist from TIA Portal
 (4) - source and target language code\
 (5) - column organisation configuration\
 (6) - operations information\
-(7) - status text with informations for user and progressbar showing translations progress\
-![](TranslateApp/Screenshots/TranslateApp_ss1.png)
+(7) - status text with informations for user and progressbar showing translations progress
+
