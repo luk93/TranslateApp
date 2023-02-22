@@ -24,6 +24,9 @@ using TranslateApp.Data;
 using System.Drawing;
 using Brushes = System.Windows.Media.Brushes;
 using Path = System.IO.Path;
+using OfficeOpenXml.FormulaParsing.Logging;
+using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace TranslateApp
 {
@@ -40,12 +43,19 @@ namespace TranslateApp
         private static List<string> _langCodeListG = null!;
         private static Stopwatch _stopWatchG = null!;
         private static Progress<int> _progress = null!;
-
         public MainWindow()
         {
             _wsDataG = new();
             _langCodeListG = LangCodes.CreateLanguageCodes();
             InitializeComponent();
+
+            //Logger Configuration
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.File("logs.txt", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+            Log.Information("Logging started");
+
             _textToTranslateList = new();
             _textDataTableG = new();
             _stopWatchG = new();
@@ -64,6 +74,7 @@ namespace TranslateApp
             var result = openFolderDialog.ShowDialog();
             if (result == true)
             {
+                TB_StatusBar.Text = "Operation failed. Check status text or log file";
                 _expFolderPath = openFolderDialog.SelectedPath + @"\";
                 TB_ExpFolderPath.Text = _expFolderPath;
                 B_OpenExpFolder.IsEnabled = true;
@@ -78,8 +89,7 @@ namespace TranslateApp
             }
             catch (Exception ex)
             {
-                TB_Status.AddLine($"{ex.Message}");
-                TB_Status.AddLine(ex.StackTrace != null ? $"\n{ex.StackTrace}" : "");
+                CatchExceptionBehaviour(ex);
             }
         }
         private async void B_SelectTextsXLSX_ClickAsync(object sender, RoutedEventArgs e)
@@ -105,8 +115,7 @@ namespace TranslateApp
                 }
                 catch (Exception ex)
                 {
-                    TB_Status.AddLine($"{ex.Message}");
-                    TB_Status.AddLine($"{ex.StackTrace}");
+                    CatchExceptionBehaviour(ex);
                 }
             }
             EnableButtonAndChangeCursor(sender);
@@ -134,33 +143,44 @@ namespace TranslateApp
                 EnableButtonAndChangeCursor(sender);
                 return;
             }
-            TB_StatusBar.Text = "Creating Textlist...";
-            _textToTranslateList = _textDataTableG.GetTextList(_wsDataG);
-            TB_Status.AddLine($"Acquired {_textToTranslateList.Count} non empty texts");
-            TB_StatusBar.Text = "Removing duplicates in Textlist...";
-            var shortVerTextList = _textToTranslateList.GetListWithoutDuplicatedSource();
-            TB_Status.AddLine($"Acquired {shortVerTextList.Count} non empty UNIQUE texts");
-            _stopWatchG.Reset();
-            _stopWatchG.Start();
-            TB_StatusBar.Text = "Translating Textlist...";
-            PB_Status.Maximum = shortVerTextList.Count;
-            await shortVerTextList.TranslateAsync(_wsDataG.SrcLangCode,_wsDataG.TrgLangCode, _progress);
-            _stopWatchG.Stop();
-            TB_Status.AddLine($"Translated in {_stopWatchG.Elapsed}.");
-            TB_StatusBar.Text = "Filling Textlist with translations...";
-            _textToTranslateList.FillListWithTranslationsList(shortVerTextList);
-            TB_StatusBar.Text = "Updating DataTable with Textlist...";
-            _textDataTableG.UpdateWithTextList(_textToTranslateList, _wsDataG);
-            var ws = excelPackage.Workbook.Worksheets[0];
-            TB_StatusBar.Text = "Loading DataTable to Excelfile...";
-            var range = ws.Cells["A1"].LoadFromDataTable(_textDataTableG, true);
-            range.AutoFitColumns();
-            var newName = excelPackage.File.FullName;
-            TB_StatusBar.Text = "Saving Excelfile...";
-            await ExcelOperations.SaveExcelFile(excelPackage);
-            TB_StatusBar.Text = "Translations made!";
-            TB_Status.AddLine($"Created file : {newName}");
-            EnableButtonAndChangeCursor(sender);
+
+            try
+            {
+                TB_StatusBar.Text = "Creating Textlist...";
+                _textToTranslateList = _textDataTableG.GetTextList(_wsDataG);
+                TB_Status.AddLine($"Acquired {_textToTranslateList.Count} non empty texts");
+                TB_StatusBar.Text = "Removing duplicates in Textlist...";
+                var shortVerTextList = _textToTranslateList.GetListWithoutDuplicatedSource();
+                TB_Status.AddLine($"Acquired {shortVerTextList.Count} non empty UNIQUE texts");
+                _stopWatchG.Reset();
+                _stopWatchG.Start();
+                TB_StatusBar.Text = "Translating Textlist...";
+                PB_Status.Maximum = shortVerTextList.Count;
+                await shortVerTextList.TranslateAsync(_wsDataG.SrcLangCode, _wsDataG.TrgLangCode, _progress);
+                _stopWatchG.Stop();
+                TB_Status.AddLine($"Translated in {_stopWatchG.Elapsed}.");
+                TB_StatusBar.Text = "Filling Textlist with translations...";
+                _textToTranslateList.FillListWithTranslationsList(shortVerTextList);
+                TB_StatusBar.Text = "Updating DataTable with Textlist...";
+                _textDataTableG.UpdateWithTextList(_textToTranslateList, _wsDataG);
+                var ws = excelPackage.Workbook.Worksheets[0];
+                TB_StatusBar.Text = "Loading DataTable to Excelfile...";
+                var range = ws.Cells["A1"].LoadFromDataTable(_textDataTableG, true);
+                range.AutoFitColumns();
+                var newName = excelPackage.File.FullName;
+                TB_StatusBar.Text = "Saving Excelfile...";
+                await ExcelOperations.SaveExcelFile(excelPackage);
+                TB_StatusBar.Text = "Translations made!";
+                TB_Status.AddLine($"Created file : {newName}");
+            }
+            catch (Exception ex)
+            {
+                CatchExceptionBehaviour(ex);
+            }
+            finally
+            {
+                EnableButtonAndChangeCursor(sender);
+            }
         }
         #endregion
         #region UI Extensions
@@ -256,6 +276,13 @@ namespace TranslateApp
                 TB_Status.AddLine($"Target language has been updated {TB_trgLang.Text} -> {wSData.TrgLangCode}");
                 TB_trgLang.Text = wSData.TrgLangCode;
             }
+        }
+        private void CatchExceptionBehaviour(Exception ex)
+        {
+            TB_StatusBar.Text = "Operation failed. Check status text or log file";
+            TB_Status.AddLine($"{ex.Message}");
+            TB_Status.AddLine(ex.StackTrace != null ? $"\n{ex.StackTrace}" : string.Empty);
+            Log.Error(ex.Message + ex.StackTrace);
         }
         #endregion
         #region UI Input Validation
