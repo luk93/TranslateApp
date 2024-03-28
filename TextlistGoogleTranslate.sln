@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33103.184
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TranslateApp", "TranslateApp\TranslateApp.csproj", "{9293AEA1-7E9A-4E29-9EE1-3322E303A305}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TextlistGoogleTranslate", "TranslateApp\TextlistGoogleTranslate.csproj", "{9293AEA1-7E9A-4E29-9EE1-3322E303A305}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

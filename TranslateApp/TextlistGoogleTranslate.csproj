@@ -5,7 +5,12 @@
     <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>google_translate_icon.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="google_translate_icon.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="EPPlus" Version="6.1.1" />

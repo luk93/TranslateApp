@@ -148,10 +148,13 @@ namespace TranslateApp
             {
                 TB_StatusBar.Text = "Creating Textlist...";
                 _textToTranslateList = _textDataTableG.GetTextList(_wsDataG);
+                Log.Information($"Started operating on '{_textFileG.FullName}'");
                 TB_Status.AddLine($"Acquired {_textToTranslateList.Count} non empty texts");
+                Log.Information($"Non empty text count: {_textToTranslateList.Count}");
                 TB_StatusBar.Text = "Removing duplicates in Textlist...";
                 var shortVerTextList = _textToTranslateList.GetListWithoutDuplicatedSource();
                 TB_Status.AddLine($"Acquired {shortVerTextList.Count} non empty UNIQUE texts");
+                Log.Information($"Non empty UNIQUE text count: {shortVerTextList.Count}");
                 _stopWatchG.Reset();
                 _stopWatchG.Start();
                 TB_StatusBar.Text = "Translating Textlist...";
@@ -159,6 +162,7 @@ namespace TranslateApp
                 await shortVerTextList.TranslateAsync(_wsDataG.SrcLangCode, _wsDataG.TrgLangCode, _progress);
                 _stopWatchG.Stop();
                 TB_Status.AddLine($"Translated in {_stopWatchG.Elapsed}.");
+                Log.Information($"Translated in: {_stopWatchG.Elapsed}");
                 TB_StatusBar.Text = "Filling Textlist with translations...";
                 _textToTranslateList.FillListWithTranslationsList(shortVerTextList);
                 TB_StatusBar.Text = "Updating DataTable with Textlist...";
@@ -172,6 +176,7 @@ namespace TranslateApp
                 await ExcelOperations.SaveExcelFile(excelPackage);
                 TB_StatusBar.Text = "Translations made!";
                 TB_Status.AddLine($"Created file : {newName}");
+                Log.Information($"Generated file '{newName}'");
             }
             catch (Exception ex)
             {
