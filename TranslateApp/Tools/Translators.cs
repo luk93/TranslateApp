@@ -19,7 +19,7 @@ namespace TranslateApp.Tools
                 OverrideEncoding = Encoding.UTF8
             };
             var htmlDoc = web.Load(url);
-            var node = htmlDoc.DocumentNode.SelectSingleNode("//div");
+            var node = htmlDoc.DocumentNode.SelectSingleNode("//body");
             foreach (HtmlNode childNode in node.ChildNodes)
             {
                 if (!string.Equals(childNode.Attributes["class"].Value, "result-container")) continue;

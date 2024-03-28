@@ -54,7 +54,7 @@ namespace TranslateApp
                 .MinimumLevel.Verbose()
                 .WriteTo.File("logs.txt", rollingInterval: RollingInterval.Day)
                 .CreateLogger();
-            Log.Information("Logging started");
+                Log.Information("Logging started");
 
             _textToTranslateList = new();
             _textDataTableG = new();
@@ -211,7 +211,6 @@ namespace TranslateApp
             {
                 B_Translate.IsEnabled = true;
                 TB_StatusBar.Text = "Configuration OK! Click MakeTranslations Button";
-
             }
             else
             {
